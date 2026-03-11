@@ -19,12 +19,13 @@ export default async function ReviewPage({ params }: Props) {
   if (!user) redirect("/login");
 
   // Fetch the photo being reviewed
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: photo } = await supabase
     .from("photos")
     .select("*")
     .eq("id", id)
     .eq("user_id", user.id)
-    .single();
+    .single() as { data: any };
 
   if (!photo) notFound();
 
@@ -35,7 +36,8 @@ export default async function ReviewPage({ params }: Props) {
     .eq("user_id", user.id)
     .order("uploaded_at", { ascending: true });
 
-  const photoList = allPhotos ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const photoList: any[] = allPhotos ?? [];
   const currentIdx = photoList.findIndex((p) => p.id === id);
   const prevId = currentIdx > 0 ? photoList[currentIdx - 1].id : null;
   const nextId =
@@ -54,7 +56,7 @@ export default async function ReviewPage({ params }: Props) {
     .select("*")
     .eq("photo_id", id)
     .eq("user_id", user.id)
-    .maybeSingle();
+    .maybeSingle() as { data: import("@/lib/types").Assignment | null };
 
   return (
     <div className="min-h-screen flex flex-col">

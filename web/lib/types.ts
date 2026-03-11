@@ -18,16 +18,16 @@ export type PhotoStatus =
   | "vehicle"
   | "false_trigger";
 
-export interface Photo {
+export type Photo = {
   id: string;
   user_id: string;
   storage_path: string;
   filename: string;
   uploaded_at: string;
   status: PhotoStatus;
-}
+};
 
-export interface Species {
+export type Species = {
   id: string;
   taxon_name: string;
   common_name: string | null;
@@ -38,9 +38,9 @@ export interface Species {
   phylum: string | null;
   class_name: string | null;
   biologic_name: string | null;
-}
+};
 
-export interface Assignment {
+export type Assignment = {
   id: string;
   photo_id: string;
   user_id: string;
@@ -59,16 +59,16 @@ export interface Assignment {
   notes: string | null;
   survey_name: string | null;
   location: string | null;
-}
+};
 
-export interface AuditLog {
+export type AuditLog = {
   id: string;
   user_id: string | null;
   photo_id: string | null;
   action: string;
   details: Record<string, unknown> | null;
   created_at: string;
-}
+};
 
 // -----------------------------------------------------------------------
 // Supabase database shape for typed client
@@ -80,21 +80,42 @@ export type Database = {
         Row: Photo;
         Insert: Omit<Photo, "id" | "uploaded_at">;
         Update: Partial<Omit<Photo, "id">>;
+        Relationships: [];
       };
       species: {
         Row: Species;
         Insert: Omit<Species, "id">;
         Update: Partial<Omit<Species, "id">>;
+        Relationships: [];
       };
       assignments: {
         Row: Assignment;
-        Insert: Omit<Assignment, "id" | "assigned_at">;
+        Insert: {
+          photo_id: string;
+          user_id: string;
+          classification: Classification;
+          taxon_name?: string | null;
+          common_name?: string | null;
+          abundance?: number;
+          behaviour?: string | null;
+          notes?: string | null;
+          date_obs?: string | null;
+          time_obs?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          camera_make?: string | null;
+          camera_model?: string | null;
+          survey_name?: string | null;
+          location?: string | null;
+        };
         Update: Partial<Omit<Assignment, "id">>;
+        Relationships: [];
       };
       audit_log: {
         Row: AuditLog;
         Insert: Omit<AuditLog, "id" | "created_at">;
-        Update: never;
+        Update: Partial<Omit<AuditLog, "id">>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;

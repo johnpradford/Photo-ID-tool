@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .order("uploaded_at", { ascending: false });
 
-  const allPhotos: Photo[] = photos ?? [];
+  const allPhotos = (photos ?? []) as Photo[];
   const pending = allPhotos.filter((p) => p.status === "pending").length;
   const assigned = allPhotos.filter((p) => p.status !== "pending").length;
 

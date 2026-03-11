@@ -35,7 +35,7 @@ export default function SpeciesSearch({ onSelect, selectedTaxon }: Props) {
           `taxon_name.ilike.%${term}%,common_name.ilike.%${term}%,family.ilike.%${term}%,genus.ilike.%${term}%`
         )
         .limit(20);
-      setResults(data ?? []);
+      setResults((data ?? []) as Species[]);
       setOpen(true);
       setLoading(false);
     }, 250);

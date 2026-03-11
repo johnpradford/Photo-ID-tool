@@ -21,7 +21,8 @@ export default async function ResultsPage() {
     .eq("user_id", user.id)
     .order("assigned_at", { ascending: false });
 
-  const assignments = rows ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const assignments: any[] = rows ?? [];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -60,7 +61,6 @@ export default async function ResultsPage() {
                   className="border-b border-border/50 hover:bg-accent/30"
                 >
                   <td className="py-1.5 pr-4 text-muted-foreground text-xs">
-                    {/* @ts-expect-error - joined relation */}
                     {a.photos?.filename ?? "—"}
                   </td>
                   <td className="py-1.5 pr-4 capitalize">{a.classification}</td>
