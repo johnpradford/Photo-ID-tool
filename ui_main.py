@@ -487,6 +487,7 @@ class MainWindow(QMainWindow):
         self._setup_ui()
         self._setup_shortcuts()
         QTimer.singleShot(0, self._apply_dark_theme)
+        QTimer.singleShot(200, self._autoload_wam)
         # Autosave timer: write CSV every 30s
         self._autosave_timer = QTimer()
         self._autosave_timer.setInterval(30_000)
@@ -713,8 +714,10 @@ class MainWindow(QMainWindow):
         self.btn_load_folder.clicked.connect(self.load_photo_folder)
         self.btn_load_workbook = QPushButton("Load Species Workbook (WAM)")
         self.btn_load_workbook.clicked.connect(self.load_species_workbook)
-        self.btn_load_common = QPushButton("Load Common Species List")
-        self.btn_load_common.clicked.connect(self.load_common_species)
+        self.btn_common_pilbara = QPushButton("Pilbara Species")
+        self.btn_common_pilbara.clicked.connect(self._load_common_pilbara)
+        self.btn_common_sw = QPushButton("South West Species")
+        self.btn_common_sw.clicked.connect(self._load_common_sw)
         self.btn_set_output = QPushButton("Set Output File")
         self.btn_set_output.clicked.connect(self.set_output_file)
         self.btn_refresh_output = QPushButton("Refresh Output")
@@ -728,7 +731,11 @@ class MainWindow(QMainWindow):
 
         setup_lay.addWidget(self.btn_load_folder)
         setup_lay.addWidget(self.btn_load_workbook)
-        setup_lay.addWidget(self.btn_load_common)
+        _region_row = QHBoxLayout()
+        _region_row.setSpacing(4)
+        _region_row.addWidget(self.btn_common_pilbara)
+        _region_row.addWidget(self.btn_common_sw)
+        setup_lay.addLayout(_region_row)
         setup_lay.addWidget(self.btn_set_output)
         setup_lay.addWidget(self.btn_refresh_output)
         setup_lay.addWidget(self.lbl_camera_id)
@@ -1029,7 +1036,13 @@ class MainWindow(QMainWindow):
         act_wb.triggered.connect(self.load_species_workbook)
         file_menu.addAction(act_wb)
 
-        act_common = QAction("Load &Common Species List...", self)
+        act_pilbara = QAction("Common Species: &Pilbara", self)
+        act_pilbara.triggered.connect(self._load_common_pilbara)
+        file_menu.addAction(act_pilbara)
+        act_sw = QAction("Common Species: &South West", self)
+        act_sw.triggered.connect(self._load_common_sw)
+        file_menu.addAction(act_sw)
+        act_common = QAction("Load &Common Species List (custom)...", self)
         act_common.triggered.connect(self.load_common_species)
         file_menu.addAction(act_common)
 
@@ -1379,8 +1392,60 @@ class MainWindow(QMainWindow):
                                 f"{msg}\n\nYou can still use manual entry.")
             self.status_bar.showMessage("Species workbook load failed -- manual entry mode")
 
+    def _autoload_wam(self):
+        """Silently load the bundled WAM workbook from the script directory."""
+        wam_path = os.path.join(_THIS_DIR, "WAM_species_list_2024.xlsx")
+        if not os.path.isfile(wam_path):
+            return
+        self.status_bar.showMessage("Loading species database…")
+        ok, msg = self.species_db.load_from_workbook(wam_path)
+        if ok:
+            self.lbl_db_status.setText(f"Species DB: {self.species_db.count} species loaded")
+            self.lbl_db_status.setStyleSheet("color: #4caf50;")
+            self.status_bar.showMessage(msg)
+            self._update_top20()
+        else:
+            self.lbl_db_status.setText("Species DB: Error")
+            self.lbl_db_status.setStyleSheet("color: #ff6b6b;")
+            self.status_bar.showMessage("Species DB load failed — use File → Load Species Workbook to load manually")
+
+    def _load_common_from_path(self, path: str, region_name: str):
+        """Load a bundled common-species file; auto-loads WAM first if needed."""
+        if not os.path.isfile(path):
+            QMessageBox.warning(self, "File Not Found",
+                                f"Could not find bundled species list:\n{path}")
+            return
+        if not self.species_db.loaded:
+            self._autoload_wam()
+            if not self.species_db.loaded:
+                QMessageBox.information(
+                    self, "Species DB Not Loaded",
+                    "WAM_species_list_2024.xlsx was not found next to this script.\n\n"
+                    "Use File → Load Species Workbook to load it manually first."
+                )
+                return
+        species_list, msg = self.species_db.load_common_species_file(path)
+        if species_list:
+            self.top20_species = species_list[:16]
+            self._rebuild_top20_buttons()
+            self.status_bar.showMessage(f"{region_name} common species loaded: {msg}")
+        else:
+            QMessageBox.warning(self, "Common Species",
+                                f"Could not load {region_name} list:\n{msg}")
+
+    @safe_slot
+    def _load_common_pilbara(self):
+        path = os.path.join(_THIS_DIR, "Commonly found Pilbara species.xlsx")
+        self._load_common_from_path(path, "Pilbara")
+
+    @safe_slot
+    def _load_common_sw(self):
+        path = os.path.join(_THIS_DIR, "Commonly found south west species.xlsx")
+        self._load_common_from_path(path, "South West")
+
     @safe_slot
     def load_common_species(self):
+        """File-picker fallback for a custom common-species workbook."""
         if not self.species_db.loaded:
             QMessageBox.information(
                 self, "Load WAM First",
