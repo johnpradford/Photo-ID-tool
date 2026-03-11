@@ -21,7 +21,7 @@ create table if not exists public.species (
 
 create index if not exists species_taxon_name_idx    on public.species (lower(taxon_name));
 create index if not exists species_common_name_idx   on public.species (lower(common_name));
-create index if not exists species_family_idx        on public.species (lower(family));
+create index if not exists species_family_idx        on public.species (lower("family"));
 
 -- Full-text search index combining all searchable fields
 create index if not exists species_search_idx on public.species
