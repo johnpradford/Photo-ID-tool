@@ -34,10 +34,11 @@ create index if not exists species_search_idx on public.species
 
 -- ---------------------------------------------------------------
 -- 2. Photos table
+-- Note: user_id is uuid (no FK to auth.users — RLS enforces ownership)
 -- ---------------------------------------------------------------
 create table if not exists public.photos (
   id            uuid primary key default gen_random_uuid(),
-  user_id       uuid references auth.users not null,
+  user_id       uuid not null,
   storage_path  text not null,                -- path in Supabase Storage bucket
   filename      text not null,
   uploaded_at   timestamptz default now(),
@@ -54,7 +55,7 @@ create index if not exists photos_status_idx   on public.photos (status);
 create table if not exists public.assignments (
   id              uuid primary key default gen_random_uuid(),
   photo_id        uuid references public.photos on delete cascade not null,
-  user_id         uuid references auth.users not null,
+  user_id         uuid not null,
   classification  text not null
                     check (classification in ('animal','blank','human','vehicle','false_trigger')),
   -- Species fields (populated when classification = 'animal')
@@ -84,7 +85,7 @@ create index if not exists assignments_user_id_idx  on public.assignments (user_
 -- ---------------------------------------------------------------
 create table if not exists public.audit_log (
   id         uuid primary key default gen_random_uuid(),
-  user_id    uuid references auth.users,
+  user_id    uuid,
   photo_id   uuid references public.photos on delete set null,
   action     text not null,
   details    jsonb,
@@ -100,7 +101,6 @@ create index if not exists audit_log_photo_id_idx on public.audit_log (photo_id)
 alter table public.photos      enable row level security;
 alter table public.assignments enable row level security;
 alter table public.audit_log   enable row level security;
--- Species table is public read, admin write — no RLS needed for read
 alter table public.species     enable row level security;
 
 -- Species: anyone authenticated can read
@@ -108,42 +108,25 @@ create policy "species_read" on public.species
   for select using (auth.role() = 'authenticated');
 
 -- Photos: users can only see/write their own
-create policy "photos_select_own" on public.photos
-  for select using (auth.uid() = user_id);
-
-create policy "photos_insert_own" on public.photos
-  for insert with check (auth.uid() = user_id);
-
-create policy "photos_update_own" on public.photos
-  for update using (auth.uid() = user_id);
-
-create policy "photos_delete_own" on public.photos
-  for delete using (auth.uid() = user_id);
+create policy "photos_select_own" on public.photos for select using (auth.uid() = user_id);
+create policy "photos_insert_own" on public.photos for insert with check (auth.uid() = user_id);
+create policy "photos_update_own" on public.photos for update using (auth.uid() = user_id);
+create policy "photos_delete_own" on public.photos for delete using (auth.uid() = user_id);
 
 -- Assignments: users can only see/write their own
-create policy "assignments_select_own" on public.assignments
-  for select using (auth.uid() = user_id);
-
-create policy "assignments_insert_own" on public.assignments
-  for insert with check (auth.uid() = user_id);
-
-create policy "assignments_update_own" on public.assignments
-  for update using (auth.uid() = user_id);
-
-create policy "assignments_delete_own" on public.assignments
-  for delete using (auth.uid() = user_id);
+create policy "assignments_select_own" on public.assignments for select using (auth.uid() = user_id);
+create policy "assignments_insert_own" on public.assignments for insert with check (auth.uid() = user_id);
+create policy "assignments_update_own" on public.assignments for update using (auth.uid() = user_id);
+create policy "assignments_delete_own" on public.assignments for delete using (auth.uid() = user_id);
 
 -- Audit log: users can insert and read their own entries
-create policy "audit_log_insert_own" on public.audit_log
-  for insert with check (auth.uid() = user_id);
-
-create policy "audit_log_select_own" on public.audit_log
-  for select using (auth.uid() = user_id);
+create policy "audit_log_insert_own" on public.audit_log for insert with check (auth.uid() = user_id);
+create policy "audit_log_select_own" on public.audit_log for select using (auth.uid() = user_id);
 
 -- ---------------------------------------------------------------
--- 6. Storage bucket (run this separately if using Supabase CLI)
--- The bucket "photos" should be created in the Supabase dashboard
--- with: private = true, file size limit = 50MB
+-- 6. Storage bucket (create manually in Supabase dashboard)
+-- Storage → New bucket → Name: photos → Private
+-- File size limit: 50MB
 -- Allowed MIME types: image/jpeg, image/png, image/tiff, image/webp
 -- ---------------------------------------------------------------
 
