@@ -104,6 +104,7 @@ export default async function ReviewPage({ params }: Props) {
         <div className="w-80 border-l border-border overflow-y-auto">
           <ClassifyPanel
             photoId={photo.id}
+            prevId={prevId}
             nextId={nextId}
             existing={existing}
           />

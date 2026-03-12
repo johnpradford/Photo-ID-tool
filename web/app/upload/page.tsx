@@ -54,6 +54,8 @@ export default function UploadPage() {
       return;
     }
 
+    let firstId: string | null = null;
+
     for (let i = 0; i < files.length; i++) {
       if (files[i].status === "done") continue;
       setFiles((prev) =>
@@ -72,14 +74,19 @@ export default function UploadPage() {
 
         if (storageError) throw storageError;
 
-        const { error: dbError } = await supabase.from("photos").insert({
-          user_id: user.id,
-          storage_path: storagePath,
-          filename: file.name,
-          status: "pending",
-        });
+        const { data: photoRow, error: dbError } = await supabase
+          .from("photos")
+          .insert({
+            user_id: user.id,
+            storage_path: storagePath,
+            filename: file.name,
+            status: "pending",
+          })
+          .select("id")
+          .single();
 
         if (dbError) throw dbError;
+        if (!firstId) firstId = (photoRow as { id: string }).id;
 
         setFiles((prev) =>
           prev.map((f, idx) =>
@@ -97,6 +104,9 @@ export default function UploadPage() {
     }
 
     setUploading(false);
+    if (firstId) {
+      router.push(`/review/${firstId}`);
+    }
   }
 
   const allDone = files.length > 0 && files.every((f) => f.status === "done");
