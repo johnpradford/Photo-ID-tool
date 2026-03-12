@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import PhotoViewer from "@/components/PhotoViewer";
 import ClassifyPanel from "@/components/ClassifyPanel";
+import type { Photo } from "@/lib/types";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -19,25 +20,23 @@ export default async function ReviewPage({ params }: Props) {
   if (!user) redirect("/login");
 
   // Fetch the photo being reviewed
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: photo } = await supabase
     .from("photos")
     .select("*")
     .eq("id", id)
     .eq("user_id", user.id)
-    .single() as { data: Record<string, unknown> };
+    .single() as { data: Photo | null };
 
   if (!photo) notFound();
 
-  // Fetch prev/next pending photo IDs for navigation
+  // Fetch prev/next photo IDs for navigation
   const { data: allPhotos } = await supabase
     .from("photos")
-    .select("id, status")
+    .select("id")
     .eq("user_id", user.id)
     .order("uploaded_at", { ascending: true });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const photoList: any[] = allPhotos ?? [];
+  const photoList: { id: string }[] = allPhotos ?? [];
   const currentIdx = photoList.findIndex((p) => p.id === id);
   const prevId = currentIdx > 0 ? photoList[currentIdx - 1].id : null;
   const nextId =
