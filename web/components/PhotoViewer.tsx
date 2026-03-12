@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 interface Props {

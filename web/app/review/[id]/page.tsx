@@ -25,7 +25,7 @@ export default async function ReviewPage({ params }: Props) {
     .select("*")
     .eq("id", id)
     .eq("user_id", user.id)
-    .single() as { data: any };
+    .single() as { data: Record<string, unknown> };
 
   if (!photo) notFound();
 
